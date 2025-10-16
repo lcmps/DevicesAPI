@@ -3,25 +3,14 @@ package db
 import (
 	"fmt"
 	"os"
-	"time"
 
+	"github.com/lcmps/DevicesAPI/model/database"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
-	"github.com/google/uuid"
 )
 
 type DB struct {
 	Connector *gorm.DB
-}
-
-type Device struct {
-	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Deleted   bool      `gorm:"not null;default:false" json:"deleted"`
-	Name      string    `gorm:"type:varchar(250);not null" json:"name"`
-	Brand     string    `gorm:"type:varchar(250);not null" json:"brand"`
-	CreatedAt time.Time `gorm:"type:timestamptz;not null;default:now()" json:"created_at"`
-	State     string    `gorm:"type:device_state;not null;default:'Available'" json:"state"`
 }
 
 func New() (*DB, error) {
@@ -69,7 +58,7 @@ func (db *DB) Init() error {
 		}
 	}
 
-	if err := db.Connector.AutoMigrate(&Device{}); err != nil {
+	if err := db.Connector.AutoMigrate(&database.Device{}); err != nil {
 		return fmt.Errorf("failed to migrate device: %w", err)
 	}
 
@@ -80,5 +69,67 @@ func (db *DB) Init() error {
 	}
 
 	fmt.Println("Database Migrated")
+	return nil
+}
+
+func (db *DB) CreateDevice(device database.Device) error {
+	// Insert the device into the database
+	// INSERT INTO devices (...) VALUES (...)
+	result := db.Connector.Create(&device)
+	if result.Error != nil {
+		return fmt.Errorf("failed to create device: %w", result.Error)
+	}
+	return nil
+}
+
+func (db *DB) UpdateDevice(device database.Device) error {
+	// Update the device in the database
+	// UPDATE devices SET ... WHERE id = ? AND deleted = FALSE
+	result := db.Connector.Model(&database.Device{}).Where("id = ? AND deleted = FALSE", device.ID).Updates(device)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update device: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("no device found with the given ID")
+	}
+
+	return nil
+}
+
+func (db *DB) GetDeviceByID(id string) (database.Device, error) {
+	var device database.Device
+
+	// Select * FROM devices WHERE id = ? AND deleted = FALSE LIMIT 1
+	result := db.Connector.Where("id = ? AND deleted = FALSE", id).First(&device)
+	if result.Error != nil {
+		return device, fmt.Errorf("failed to get device by ID: %w", result.Error)
+	}
+
+	return device, nil
+}
+
+func (db *DB) GetDevices(limit int, offset int) ([]database.Device, error) {
+	var deviceList []database.Device
+
+	// Select * FROM devices WHERE deleted = FALSE LIMIT ? OFFSET ?
+	result := db.Connector.Where("deleted = FALSE").Limit(limit).Offset(offset).Find(&deviceList)
+	if result.Error != nil {
+		return deviceList, fmt.Errorf("failed to get devices: %w", result.Error)
+	}
+
+	return deviceList, nil
+}
+
+func (db *DB) DeleteDevice(id string) error {
+	// Using soft delete on a device by setting the deleted flag to TRUE on the database
+	// UPDATE devices SET deleted = TRUE WHERE id = ? AND deleted = FALSE
+	result := db.Connector.Model(&database.Device{}).Where("id = ? AND deleted = FALSE", id).Update("deleted", true)
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete device: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("no device found with the given ID")
+	}
+
 	return nil
 }
