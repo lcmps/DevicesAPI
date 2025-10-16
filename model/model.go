@@ -8,11 +8,11 @@ import (
 )
 
 type Device struct {
-	ID        string `json:"id"`
+	ID        string `json:"id" example:"3fa85f64-5717-4562-b3fc-2c963f66afa6"`
 	Name      string `json:"name"`
 	Brand     string `json:"brand"`
-	State     string `json:"state"`
-	CreatedAt string `json:"createdAt"`
+	State     string `json:"state" example:"Available"`
+	CreatedAt string `json:"createdAt" example:"2023-10-05T14:48:00Z"`
 }
 
 func (dvc *Device) Marshall(b []byte) error {
@@ -80,4 +80,8 @@ func (dvL *DeviceList) Unmarshall() ([]byte, error) {
 		return nil, err
 	}
 	return b, nil
+}
+
+type RestError struct {
+	Message string `json:"message" example:"here is the error message"`
 }

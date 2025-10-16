@@ -1,0 +1,212 @@
+basePath: /api
+definitions:
+  model.Device:
+    properties:
+      brand:
+        type: string
+      createdAt:
+        example: "2023-10-05T14:48:00Z"
+        type: string
+      id:
+        example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        type: string
+      name:
+        type: string
+      state:
+        example: Available
+        type: string
+    type: object
+  model.DeviceList:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/model.Device'
+        type: array
+      total:
+        type: integer
+    type: object
+  model.RestError:
+    properties:
+      message:
+        example: here is the error message
+        type: string
+    type: object
+host: localhost:9001
+info:
+  contact: {}
+  description: A simple API to manage devices
+  title: Device API
+  version: "0.1"
+paths:
+  /device:
+    get:
+      description: List devices with optional filters for name, brand, and state.
+        Supports pagination.
+      parameters:
+      - description: 'Number of records to return (default: 50)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Starting index (default: 0)'
+        in: query
+        name: start
+        type: integer
+      - description: Filter by device name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by device brand
+        in: query
+        name: brand
+        type: string
+      - description: Filter by device state (Available, In-Use, Inactive)
+        in: query
+        name: state
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.DeviceList'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.RestError'
+      summary: List devices
+      tags:
+      - devices
+    post:
+      consumes:
+      - application/json
+      description: 'Create a new device entry. Name, brand, and state are required.
+        State must be one of:'
+      parameters:
+      - description: Device to create
+        in: body
+        name: device
+        required: true
+        schema:
+          $ref: '#/definitions/model.Device'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Device'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.RestError'
+      summary: Create a new device
+      tags:
+      - devices
+  /device/{id}:
+    delete:
+      description: Soft delete a device by ID. Devices in use cannot be deleted.
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.RestError'
+      summary: Delete a device
+      tags:
+      - devices
+    get:
+      description: Fetch a single device by its ID.
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Device'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.RestError'
+      summary: Get device by ID
+      tags:
+      - devices
+    put:
+      consumes:
+      - application/json
+      description: Fully or partially update an existing device. Name and brand cannot
+        be changed if device is in use.
+      parameters:
+      - description: Device ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Device fields to update
+        in: body
+        name: device
+        required: true
+        schema:
+          $ref: '#/definitions/model.Device'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Device'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.RestError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.RestError'
+      summary: Update an existing device
+      tags:
+      - devices
+schemes:
+- http
+swagger: "2.0"

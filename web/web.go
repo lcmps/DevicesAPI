@@ -9,8 +9,19 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lcmps/DevicesAPI/db"
 	"github.com/lcmps/DevicesAPI/model"
+
+	_ "github.com/lcmps/DevicesAPI/docs"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @title			Device API
+// @version		0.1
+// @description	A simple API to manage devices
+// @host		localhost:9001
+// @BasePath	/api
+// @schemes	http
 type Web struct {
 	Router *gin.Engine
 	DB     *db.DB
@@ -56,6 +67,8 @@ func (w *Web) Serve() {
 		api.DELETE("/:id", w.deleteDevice)
 	}
 
+	w.Router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	log.Println("Starting server on port " + os.Getenv("PORT"))
 	err := w.Router.Run(":" + os.Getenv("PORT"))
 	if err != nil {
@@ -63,21 +76,36 @@ func (w *Web) Serve() {
 	}
 }
 
+// newDevice godoc
+// @Summary      Create a new device
+// @Description  Create a new device entry. Name, brand, and state are required. State must be one of:
+// Available,
+// In-Use,
+// Inactive.
+// @Tags         devices
+// @Accept       json
+// @Produce      json
+// @Param        device  body      model.Device  true  "Device to create"
+// @Success      201     {object}  model.Device
+// @Failure      400     {object}  model.RestError
+// @Failure      409     {object}  model.RestError
+// @Failure      500     {object}  model.RestError
+// @Router       /device [post]
 func (w *Web) newDevice(ctx *gin.Context) {
 	var requestBody model.Device
 	if err := ctx.ShouldBindJSON(&requestBody); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: err.Error()})
 		return
 	}
 
 	if requestBody.Name == "" || requestBody.Brand == "" || requestBody.State == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "name, brand, and state are required fields"})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: "name, brand, and state are required fields"})
 		return
 	}
 
 	// checking if the provided state is one of the 3 valid values.
 	if !isValidState(requestBody.State) {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid state value, should be one of: Available, In-Use, Inactive"})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: "invalid state value, should be one of: Available, In-Use, Inactive"})
 		return
 	}
 
@@ -88,11 +116,11 @@ func (w *Web) newDevice(ctx *gin.Context) {
 	// so if my guess that name+brand should be unique is wrong, it can be easily changed.
 	existingDevices, err := w.DB.GetDevices(1, 0, requestBody.Brand, "", requestBody.Name)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 	if len(existingDevices) > 0 {
-		ctx.JSON(http.StatusConflict, gin.H{"error": "a device with the same name and brand already exists"})
+		ctx.JSON(http.StatusConflict, model.RestError{Message: "a device with the same name and brand already exists"})
 		return
 	}
 
@@ -105,35 +133,44 @@ func (w *Web) newDevice(ctx *gin.Context) {
 
 	err = w.DB.CreateDevice(&dbDevice)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Fetch the device just created to get the real ID and CreatedAt
-	created, err := w.DB.GetDevices(1, 0, dbDevice.Brand, dbDevice.State, dbDevice.Name)
-	if err != nil || len(created) == 0 {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch created device"})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 
 	var dvc model.Device
-	dvc.TranslateToAPI(created[0])
-
+	dvc.TranslateToAPI(dbDevice)
 	ctx.JSON(http.StatusCreated, dvc)
 }
 
+// @Summary      Update an existing device
+// @Description  Fully or partially update an existing device. Name and brand cannot be changed if device is in use.
+// @Tags         devices
+// @Accept       json
+// @Produce      json
+// @Param        id      path      string        true  "Device ID"
+// @Param        device  body      model.Device  true  "Device fields to update"
+// @Success      200     {object}  model.Device
+// @Failure      400     {object}  model.RestError
+// @Failure      404     {object}  model.RestError
+// @Failure      500     {object}  model.RestError
+// @Router       /device/{id} [put]
 func (w *Web) updateDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	var requestBody model.Device
 	if err := ctx.ShouldBindJSON(&requestBody); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: err.Error()})
 		return
 	}
 
 	device, err := w.DB.GetDeviceByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
+		return
+	}
+
+	if device.ID.String() == "" {
+		ctx.JSON(http.StatusNotFound, model.RestError{Message: "device not found"})
 		return
 	}
 
@@ -144,7 +181,7 @@ func (w *Web) updateDevice(ctx *gin.Context) {
 		nameChanged := requestBody.Name != "" && requestBody.Name != device.Name
 		brandChanged := requestBody.Brand != "" && requestBody.Brand != device.Brand
 		if nameChanged || brandChanged {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "cannot update name or brand: device is currently in use"})
+			ctx.JSON(http.StatusBadRequest, model.RestError{Message: "cannot update name or brand: device is currently in use"})
 			return
 		}
 	}
@@ -178,7 +215,7 @@ func (w *Web) updateDevice(ctx *gin.Context) {
 	if requestBody.State != "" {
 		// checking if the provided state is one of the 3 valid values.
 		if !isValidState(requestBody.State) {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid state value, should be one of: Available, In-Use, Inactive"})
+			ctx.JSON(http.StatusBadRequest, model.RestError{Message: "invalid state value, should be one of: Available, In-Use, Inactive"})
 			return
 		}
 		device.State = requestBody.State
@@ -186,7 +223,7 @@ func (w *Web) updateDevice(ctx *gin.Context) {
 
 	err = w.DB.UpdateDevice(device)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 
@@ -196,12 +233,26 @@ func (w *Web) updateDevice(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dvc)
 }
 
+// @Summary      Get device by ID
+// @Description  Fetch a single device by its ID.
+// @Tags         devices
+// @Produce      json
+// @Param        id   path      string        true  "Device ID"
+// @Success      200  {object}  model.Device
+// @Failure      404  {object}  model.RestError
+// @Failure      500  {object}  model.RestError
+// @Router       /device/{id} [get]
 func (w *Web) getDeviceByID(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	device, err := w.DB.GetDeviceByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
+		return
+	}
+
+	if device.ID.String() == "" {
+		ctx.JSON(http.StatusNotFound, model.RestError{Message: "device not found"})
 		return
 	}
 
@@ -221,6 +272,20 @@ func (w *Web) getDeviceByID(ctx *gin.Context) {
 //   - Available
 //   - In-use
 //   - Inactive
+//
+// @Summary      List devices
+// @Description  List devices with optional filters for name, brand, and state. Supports pagination.
+// @Tags         devices
+// @Produce      json
+// @Param        limit  query     int     false  "Number of records to return (default: 50)"
+// @Param        start  query     int     false  "Starting index (default: 0)"
+// @Param        name   query     string  false  "Filter by device name (partial match)"
+// @Param        brand  query     string  false  "Filter by device brand"
+// @Param        state  query     string  false  "Filter by device state (Available, In-Use, Inactive)"
+// @Success      200    {object}  model.DeviceList
+// @Failure      400    {object}  model.RestError
+// @Failure      500    {object}  model.RestError
+// @Router       /device [get]
 func (w *Web) getDeviceByFilter(ctx *gin.Context) {
 	// Setting default values for limit and start parameters if none are provided through the URL query.
 	// since returning all records could be heavy on the server and network.
@@ -228,14 +293,14 @@ func (w *Web) getDeviceByFilter(ctx *gin.Context) {
 	limitStr := ctx.DefaultQuery("limit", "50")
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "limit must be an integer"})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: "limit must be an integer"})
 		return
 	}
 
 	startStr := ctx.DefaultQuery("start", "0")
 	start, err := strconv.Atoi(startStr)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "start must be an integer"})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: "start must be an integer"})
 		return
 	}
 
@@ -245,7 +310,7 @@ func (w *Web) getDeviceByFilter(ctx *gin.Context) {
 
 	devices, err := w.DB.GetDevices(limit, start, brand, state, name)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 
@@ -255,24 +320,33 @@ func (w *Web) getDeviceByFilter(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dvcList)
 }
 
+// @Summary      Delete a device
+// @Description  Soft delete a device by ID. Devices in use cannot be deleted.
+// @Tags         devices
+// @Param        id   path      string  true  "Device ID"
+// @Success      204  "No Content"
+// @Failure      400  {object}  model.RestError
+// @Failure      404  {object}  model.RestError
+// @Failure      500  {object}  model.RestError
+// @Router       /device/{id} [delete]
 func (w *Web) deleteDevice(ctx *gin.Context) {
 	id := ctx.Param("id")
 
 	// Fetch device to check its state
 	device, err := w.DB.GetDeviceByID(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 	if device.State == "In-Use" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "cannot delete device: device is currently in use"})
+		ctx.JSON(http.StatusBadRequest, model.RestError{Message: "cannot delete device: device is currently in use"})
 		return
 	}
 
 	// Proceed with deletion
 	err = w.DB.DeleteDevice(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, model.RestError{Message: err.Error()})
 		return
 	}
 
