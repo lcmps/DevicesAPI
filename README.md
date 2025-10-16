@@ -4,7 +4,7 @@
 - Docker
 
 ## Proposal
-develop a REST API capable of persis:ng and managing device resources.
+develop a REST API capable of persisting and managing device resources.
 
 ## Device Domain
 In PostgreSQL
