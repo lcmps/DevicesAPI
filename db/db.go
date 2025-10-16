@@ -72,10 +72,8 @@ func (db *DB) Init() error {
 	return nil
 }
 
-func (db *DB) CreateDevice(device database.Device) error {
-	// Insert the device into the database
-	// INSERT INTO devices (...) VALUES (...)
-	result := db.Connector.Create(&device)
+func (db *DB) CreateDevice(device *database.Device) error {
+	result := db.Connector.Create(device)
 	if result.Error != nil {
 		return fmt.Errorf("failed to create device: %w", result.Error)
 	}
@@ -108,11 +106,22 @@ func (db *DB) GetDeviceByID(id string) (database.Device, error) {
 	return device, nil
 }
 
-func (db *DB) GetDevices(limit int, offset int) ([]database.Device, error) {
+func (db *DB) GetDevices(limit int, offset int, brand, state, name string) ([]database.Device, error) {
 	var deviceList []database.Device
 
-	// Select * FROM devices WHERE deleted = FALSE LIMIT ? OFFSET ?
-	result := db.Connector.Where("deleted = FALSE").Limit(limit).Offset(offset).Find(&deviceList)
+	query := db.Connector.Where("deleted = FALSE")
+
+	if brand != "" {
+		query = query.Where("brand = ?", brand)
+	}
+	if state != "" {
+		query = query.Where("state = ?", state)
+	}
+	if name != "" {
+		query = query.Where("name ILIKE ?", "%"+name+"%")
+	}
+
+	result := query.Limit(limit).Offset(offset).Find(&deviceList)
 	if result.Error != nil {
 		return deviceList, fmt.Errorf("failed to get devices: %w", result.Error)
 	}
