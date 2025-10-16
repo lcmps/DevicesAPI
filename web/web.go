@@ -1,7 +1,7 @@
 package web
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -56,10 +56,10 @@ func (w *Web) Serve() {
 		api.DELETE("/:id", w.deleteDevice)
 	}
 
-	fmt.Println("Starting server on port " + os.Getenv("PORT"))
+	log.Println("Starting server on port " + os.Getenv("PORT"))
 	err := w.Router.Run(":" + os.Getenv("PORT"))
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatalln(err.Error())
 	}
 }
 

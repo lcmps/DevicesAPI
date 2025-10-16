@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/lcmps/DevicesAPI/model/database"
@@ -68,7 +69,7 @@ func (db *DB) Init() error {
 		}
 	}
 
-	fmt.Println("Database Migrated")
+	log.Println("Database Migrated")
 	return nil
 }
 
