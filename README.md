@@ -46,3 +46,6 @@ In PostgreSQL
 - Creation time cannot be updated.
 - Name and brand properties cannot be updated if the device is in use.
 - In use devices cannot be deleted.
+
+## Test coverage
+`go test $(go list ./... | grep -v '/docs') -coverprofile=cover.out && go tool cover -html=cover.out -o cover.html`
