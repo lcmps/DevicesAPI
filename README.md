@@ -1,8 +1,22 @@
 # DevicesAPI
 
+## Getting started
+
+### What you will need
+
 - Go v1.25+
 - Docker
-- Docker Compose
+- Kubernetes cluster (tested with minikube)
+    - Docker compose also works and compose file is also included in this repository
+
+### Compose route
+
+- Clone this repository
+- Build the api image with `docker build -t devices-api -f Dockerfile .` and run `docker compose up`
+- If `bash` is installed in your system, you can also execute `build.sh` to build and run composer
+
+If minikube is installed you can also `apply` all .yaml files inside the kubernetes folder `kubectl apply -f filename.yaml`
+
 
 ## Proposal
 develop a REST API capable of persisting and managing device resources.
