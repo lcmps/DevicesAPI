@@ -1,8 +1,6 @@
 package model
 
 import (
-	"encoding/json"
-
 	"github.com/google/uuid"
 	"github.com/lcmps/DevicesAPI/model/database"
 )
@@ -13,22 +11,6 @@ type Device struct {
 	Brand     string `json:"brand"`
 	State     string `json:"state" example:"Available"`
 	CreatedAt string `json:"createdAt" example:"2023-10-05T14:48:00Z"`
-}
-
-func (dvc *Device) Marshall(b []byte) error {
-	err := json.Unmarshal(b, dvc)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (dvc *Device) Unmarshall() ([]byte, error) {
-	b, err := json.Marshal(dvc)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
 }
 
 func (dvc *Device) TranslateToAPI(d database.Device) {
@@ -64,22 +46,6 @@ func (dvc *DeviceList) TranslateToAPI(d []database.Device) {
 		device.TranslateToAPI(d)
 		dvc.Devices = append(dvc.Devices, device)
 	}
-}
-
-func (dvL *DeviceList) Marshall(b []byte) error {
-	err := json.Unmarshal(b, dvL)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (dvL *DeviceList) Unmarshall() ([]byte, error) {
-	b, err := json.Marshal(dvL)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
 }
 
 type RestError struct {
