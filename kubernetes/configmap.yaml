@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: device-config
+  namespace: devices
+data:
+  version: "0.1"
+  POSTGRES_HOST: db
+  PORT: "9001"
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: device_api

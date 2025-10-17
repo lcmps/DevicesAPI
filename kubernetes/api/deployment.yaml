@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devices-api
+  namespace: devices
+  labels:
+    app: devices-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devices-api
+  template:
+    metadata:
+      labels:
+        app: devices-api
+    spec:
+      containers:
+      - name: devices-api
+        image: devices-api:latest
+        imagePullPolicy: Never
+        ports:
+          - containerPort: 9001
+        envFrom:
+            - configMapRef:
+                name: device-config
+        resources:
+          limits:
+            memory: 32Mi
+            cpu: "0.5"
+          requests:
+            memory: 16Mi
+            cpu: "0.1"
