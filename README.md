@@ -17,6 +17,9 @@
 
 If minikube is installed you can also `apply` all .yaml files inside the kubernetes folder `kubectl apply -f filename.yaml`
 
+## API Documentation
+
+Documentation of each endpoint can be found on the swagger page, accessible by default at <a src="localhost:9001/swagger/index.html" target="_blank">localhost:9001/swagger/index.html</a>  
 
 ## Proposal
 develop a REST API capable of persisting and managing device resources.
