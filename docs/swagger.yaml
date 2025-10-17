@@ -31,12 +31,11 @@ definitions:
         example: here is the error message
         type: string
     type: object
-host: localhost:9001
 info:
   contact: {}
   description: A simple API to manage devices
   title: Device API
-  version: "0.1"
+  version: "1.0"
 paths:
   /device:
     get:
@@ -207,6 +206,4 @@ paths:
       summary: Update an existing device
       tags:
       - devices
-schemes:
-- http
 swagger: "2.0"

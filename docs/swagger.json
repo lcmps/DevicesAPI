@@ -1,15 +1,11 @@
 {
-    "schemes": [
-        "http"
-    ],
     "swagger": "2.0",
     "info": {
         "description": "A simple API to manage devices",
         "title": "Device API",
         "contact": {},
-        "version": "0.1"
+        "version": "1.0"
     },
-    "host": "localhost:9001",
     "basePath": "/api",
     "paths": {
         "/device": {

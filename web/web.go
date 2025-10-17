@@ -17,11 +17,9 @@ import (
 )
 
 // @title			Device API
-// @version		0.1
+// @version		1.0
 // @description	A simple API to manage devices
-// @host		localhost:9001
 // @BasePath	/api
-// @schemes	http
 type Web struct {
 	Router *gin.Engine
 	DB     *db.DB
