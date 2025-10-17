@@ -69,6 +69,18 @@ func (db *DB) Init() error {
 		}
 	}
 
+	dummyDevices := []database.Device{
+		{Name: "Alpha", Brand: "BrandA", State: "Available"},
+		{Name: "Beta", Brand: "BrandB", State: "Inactive"},
+		{Name: "Gamma", Brand: "BrandA", State: "In-Use"},
+	}
+	for _, d := range dummyDevices {
+		var dev database.Device
+		cond := database.Device{Name: d.Name, Brand: d.Brand}
+		if err := db.Connector.Where(cond).FirstOrCreate(&dev, d).Error; err != nil {
+			return fmt.Errorf("failed to insert dummy device: %w", err)
+		}
+	}
 	log.Println("Database Migrated")
 	return nil
 }
